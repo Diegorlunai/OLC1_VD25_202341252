@@ -16,6 +16,11 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import main.Salida;
 import simbolo.TablaSimbolos;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Interfaz extends JFrame {
 
@@ -26,8 +31,13 @@ public class Interfaz extends JFrame {
     private JButton btnReporteErrores;
     private JButton btnReporteTabla;
     private JButton btnReporteTokens;
+    private JButton btnAbrir;
+    private JButton btnGuardar;
+    private JButton btnGuardarComo;
+    private File archivoActual; // Para recordar el archivo abierto
     
     private TablaSimbolos entornoFinal;
+    
     
     // Paleta de colores profesional
     private static final Color PRIMARY_DARK = new Color(26, 35, 46);      // Azul oscuro profundo
@@ -93,17 +103,27 @@ public class Interfaz extends JFrame {
         btnReporteTokens = crearBotonModerno("📋 TOKENS", ACCENT_BLUE, "Ver tokens");
         btnReporteTabla = crearBotonModerno("💾 SÍMBOLOS", ACCENT_ORANGE, "Tabla de símbolos");
         btnReporteErrores = crearBotonModerno("⚠ ERRORES", ACCENT_RED, "Ver errores");
-
+        btnAbrir = crearBotonModerno("📂 ABRIR", new Color(52, 152, 219), "Abrir archivo");
+        btnGuardar = crearBotonModerno("💾 GUARDAR", new Color(46, 204, 113), "Guardar archivo");
+        btnGuardarComo = crearBotonModerno("💾 GUARDAR COMO", new Color(26, 188, 156), "Guardar como...");
+        
         btnCompilar.addActionListener(e -> compilar());
         btnReporteTokens.addActionListener(e -> generarReporteTokens());
         btnReporteTabla.addActionListener(e -> generarReporteTabla());
         btnReporteErrores.addActionListener(e -> generarReporteErrores());
+        btnAbrir.addActionListener(e -> abrirArchivo());
+        btnGuardar.addActionListener(e -> guardarArchivo());
+        btnGuardarComo.addActionListener(e -> guardarArchivoComo());
 
         panelBotones.add(btnCompilar);
         panelBotones.add(Box.createHorizontalStrut(25));
         panelBotones.add(btnReporteTokens);
         panelBotones.add(btnReporteTabla);
         panelBotones.add(btnReporteErrores);
+        panelBotones.add(btnAbrir);
+        panelBotones.add(btnGuardar);
+        panelBotones.add(btnGuardarComo);
+        panelBotones.add(Box.createHorizontalStrut(25)); // Separador
         
         add(panelBotones, BorderLayout.CENTER);
 
@@ -466,7 +486,75 @@ public class Interfaz extends JFrame {
                 "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+    
+    private void abrirArchivo() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos JU (*.ju)", "ju"));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos de texto (*.txt)", "txt"));
+        
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            archivoActual = fileChooser.getSelectedFile();
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(archivoActual));
+                areaCodigo.setText("");
+                String linea;
+                while ((linea = reader.readLine()) != null) {
+                    areaCodigo.append(linea + "\n");
+                }
+                reader.close();
+                setTitle("Compilador OLC1 - " + archivoActual.getName());
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error al abrir el archivo: " + e.getMessage(), 
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
 
+    private void guardarArchivo() {
+        if (archivoActual == null) {
+            guardarArchivoComo();
+        } else {
+            try {
+                FileWriter writer = new FileWriter(archivoActual);
+                writer.write(areaCodigo.getText());
+                writer.close();
+                JOptionPane.showMessageDialog(this, "Archivo guardado exitosamente", 
+                    "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error al guardar: " + e.getMessage(), 
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void guardarArchivoComo() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos JU (*.ju)", "ju"));
+        
+        int result = fileChooser.showSaveDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            archivoActual = fileChooser.getSelectedFile();
+            
+            // Agregar extensión .ju si no la tiene
+            if (!archivoActual.getName().endsWith(".ju")) {
+                archivoActual = new File(archivoActual.getAbsolutePath() + ".ju");
+            }
+            
+            try {
+                FileWriter writer = new FileWriter(archivoActual);
+                writer.write(areaCodigo.getText());
+                writer.close();
+                setTitle("Compilador OLC1 - " + archivoActual.getName());
+                JOptionPane.showMessageDialog(this, "Archivo guardado exitosamente", 
+                    "Éxito", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error al guardar: " + e.getMessage(), 
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
@@ -477,4 +565,6 @@ public class Interfaz extends JFrame {
             new Interfaz().setVisible(true);
         });
     }
+        
+    
 }
